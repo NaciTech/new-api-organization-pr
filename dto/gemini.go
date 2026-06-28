@@ -27,6 +27,7 @@ func (r *GeminiChatRequest) UnmarshalJSON(data []byte) error {
 	type Alias GeminiChatRequest
 	var aux struct {
 		Alias
+		GenerationConfigSnake  GeminiChatGenerationConfig `json:"generation_config,omitempty"`
 		SystemInstructionSnake *GeminiChatContent `json:"system_instruction,omitempty"`
 	}
 
@@ -36,6 +37,9 @@ func (r *GeminiChatRequest) UnmarshalJSON(data []byte) error {
 
 	*r = GeminiChatRequest(aux.Alias)
 
+	if !aux.GenerationConfigSnake.IsEmpty() {
+		r.GenerationConfig = aux.GenerationConfigSnake
+	}
 	if aux.SystemInstructionSnake != nil {
 		r.SystemInstructions = aux.SystemInstructionSnake
 	}
@@ -46,7 +50,7 @@ func (r *GeminiChatRequest) UnmarshalJSON(data []byte) error {
 type ToolConfig struct {
 	FunctionCallingConfig *FunctionCallingConfig `json:"functionCallingConfig,omitempty"`
 	RetrievalConfig       *RetrievalConfig       `json:"retrievalConfig,omitempty"`
-	IncludeServerSideToolInvocations *bool       `json:"includeServerSideToolInvocations,omitempty"`
+	IncludeServerSideToolInvocations json.RawMessage `json:"includeServerSideToolInvocations,omitempty"`
 }
 
 type FunctionCallingConfig struct {
@@ -240,6 +244,7 @@ func (g *GeminiInlineData) UnmarshalJSON(data []byte) error {
 type FunctionCall struct {
 	FunctionName string `json:"name"`
 	Arguments    any    `json:"args"`
+	ID           string `json:"id,omitempty"`
 }
 
 type GeminiFunctionResponse struct {
@@ -254,11 +259,13 @@ type GeminiFunctionResponse struct {
 type GeminiPartExecutableCode struct {
 	Language string `json:"language,omitempty"`
 	Code     string `json:"code,omitempty"`
+	ID       string `json:"id,omitempty"`
 }
 
 type GeminiPartCodeExecutionResult struct {
 	Outcome string `json:"outcome,omitempty"`
 	Output  string `json:"output,omitempty"`
+	ID      string `json:"id,omitempty"`
 }
 
 type GeminiFileData struct {
@@ -276,6 +283,9 @@ type GeminiPart struct {
 	// Optional. Media resolution for the input media.
 	MediaResolution     json.RawMessage                `json:"mediaResolution,omitempty"`
 	VideoMetadata       json.RawMessage                `json:"videoMetadata,omitempty"`
+	PartMetadata        json.RawMessage                `json:"partMetadata,omitempty"`
+	ToolCall            json.RawMessage                `json:"toolCall,omitempty"`
+	ToolResponse        json.RawMessage                `json:"toolResponse,omitempty"`
 	FileData            *GeminiFileData                `json:"fileData,omitempty"`
 	ExecutableCode      *GeminiPartExecutableCode      `json:"executableCode,omitempty"`
 	CodeExecutionResult *GeminiPartCodeExecutionResult `json:"codeExecutionResult,omitempty"`
@@ -335,6 +345,7 @@ type GeminiChatGenerationConfig struct {
 	StopSequences              []string              `json:"stopSequences,omitempty"`
 	ResponseMimeType           string                `json:"responseMimeType,omitempty"`
 	ResponseSchema             any                   `json:"responseSchema,omitempty"`
+	ResponseJsonSchemaInternal json.RawMessage       `json:"_responseJsonSchema,omitempty"`
 	ResponseJsonSchema         json.RawMessage       `json:"responseJsonSchema,omitempty"`
 	PresencePenalty            *float32              `json:"presencePenalty,omitempty"`
 	FrequencyPenalty           *float32              `json:"frequencyPenalty,omitempty"`
@@ -347,6 +358,36 @@ type GeminiChatGenerationConfig struct {
 	ThinkingConfig             *GeminiThinkingConfig `json:"thinkingConfig,omitempty"`
 	SpeechConfig               json.RawMessage       `json:"speechConfig,omitempty"` // RawMessage to allow flexible speech config
 	ImageConfig                json.RawMessage       `json:"imageConfig,omitempty"`  // RawMessage to allow flexible image config
+	AudioTimestamp             json.RawMessage       `json:"audioTimestamp,omitempty"`
+	ResponseFormat             json.RawMessage       `json:"responseFormat,omitempty"`
+	TranslationConfig          json.RawMessage       `json:"translationConfig,omitempty"`
+}
+
+func (c GeminiChatGenerationConfig) IsEmpty() bool {
+	return c.Temperature == nil &&
+		c.TopP == nil &&
+		c.TopK == nil &&
+		c.MaxOutputTokens == nil &&
+		c.CandidateCount == nil &&
+		len(c.StopSequences) == 0 &&
+		c.ResponseMimeType == "" &&
+		c.ResponseSchema == nil &&
+		len(c.ResponseJsonSchemaInternal) == 0 &&
+		len(c.ResponseJsonSchema) == 0 &&
+		c.PresencePenalty == nil &&
+		c.FrequencyPenalty == nil &&
+		c.ResponseLogprobs == nil &&
+		c.Logprobs == nil &&
+		c.EnableEnhancedCivicAnswers == nil &&
+		c.MediaResolution == "" &&
+		c.Seed == nil &&
+		len(c.ResponseModalities) == 0 &&
+		c.ThinkingConfig == nil &&
+		len(c.SpeechConfig) == 0 &&
+		len(c.ImageConfig) == 0 &&
+		len(c.AudioTimestamp) == 0 &&
+		len(c.ResponseFormat) == 0 &&
+		len(c.TranslationConfig) == 0
 }
 
 // UnmarshalJSON allows GeminiChatGenerationConfig to accept both snake_case and camelCase fields.
@@ -361,6 +402,7 @@ func (c *GeminiChatGenerationConfig) UnmarshalJSON(data []byte) error {
 		StopSequencesSnake              []string              `json:"stop_sequences,omitempty"`
 		ResponseMimeTypeSnake           string                `json:"response_mime_type,omitempty"`
 		ResponseSchemaSnake             any                   `json:"response_schema,omitempty"`
+		ResponseJsonSchemaInternalSnake json.RawMessage       `json:"_response_json_schema,omitempty"`
 		ResponseJsonSchemaSnake         json.RawMessage       `json:"response_json_schema,omitempty"`
 		PresencePenaltySnake            *float32              `json:"presence_penalty,omitempty"`
 		FrequencyPenaltySnake           *float32              `json:"frequency_penalty,omitempty"`
@@ -371,6 +413,9 @@ func (c *GeminiChatGenerationConfig) UnmarshalJSON(data []byte) error {
 		ThinkingConfigSnake             *GeminiThinkingConfig `json:"thinking_config,omitempty"`
 		SpeechConfigSnake               json.RawMessage       `json:"speech_config,omitempty"`
 		ImageConfigSnake                json.RawMessage       `json:"image_config,omitempty"`
+		AudioTimestampSnake             json.RawMessage       `json:"audio_timestamp,omitempty"`
+		ResponseFormatSnake             json.RawMessage       `json:"response_format,omitempty"`
+		TranslationConfigSnake          json.RawMessage       `json:"translation_config,omitempty"`
 	}
 
 	if err := common.Unmarshal(data, &aux); err != nil {
@@ -401,6 +446,9 @@ func (c *GeminiChatGenerationConfig) UnmarshalJSON(data []byte) error {
 	if aux.ResponseSchemaSnake != nil {
 		c.ResponseSchema = aux.ResponseSchemaSnake
 	}
+	if len(aux.ResponseJsonSchemaInternalSnake) > 0 {
+		c.ResponseJsonSchemaInternal = aux.ResponseJsonSchemaInternalSnake
+	}
 	if len(aux.ResponseJsonSchemaSnake) > 0 {
 		c.ResponseJsonSchema = aux.ResponseJsonSchemaSnake
 	}
@@ -430,6 +478,15 @@ func (c *GeminiChatGenerationConfig) UnmarshalJSON(data []byte) error {
 	}
 	if len(aux.ImageConfigSnake) > 0 {
 		c.ImageConfig = aux.ImageConfigSnake
+	}
+	if len(aux.AudioTimestampSnake) > 0 {
+		c.AudioTimestamp = aux.AudioTimestampSnake
+	}
+	if len(aux.ResponseFormatSnake) > 0 {
+		c.ResponseFormat = aux.ResponseFormatSnake
+	}
+	if len(aux.TranslationConfigSnake) > 0 {
+		c.TranslationConfig = aux.TranslationConfigSnake
 	}
 
 	return nil

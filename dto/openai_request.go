@@ -241,6 +241,7 @@ type ToolCallRequest struct {
 	Type     string          `json:"type"`
 	Function FunctionRequest `json:"function,omitempty"`
 	Custom   json.RawMessage `json:"custom,omitempty"`
+	Extra    map[string]json.RawMessage `json:"-"`
 }
 
 type FunctionRequest struct {
@@ -248,6 +249,87 @@ type FunctionRequest struct {
 	Name        string `json:"name"`
 	Parameters  any    `json:"parameters,omitempty"`
 	Arguments   string `json:"arguments,omitempty"`
+	Strict      json.RawMessage `json:"strict,omitempty"`
+	Extra       map[string]json.RawMessage `json:"-"`
+}
+
+func (t *ToolCallRequest) UnmarshalJSON(data []byte) error {
+	type alias ToolCallRequest
+	var parsed alias
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	delete(raw, "id")
+	delete(raw, "type")
+	delete(raw, "function")
+	delete(raw, "custom")
+	*t = ToolCallRequest(parsed)
+	if len(raw) > 0 {
+		t.Extra = raw
+	} else {
+		t.Extra = nil
+	}
+	return nil
+}
+
+func (t ToolCallRequest) MarshalJSON() ([]byte, error) {
+	type alias ToolCallRequest
+	data, err := json.Marshal(alias(t))
+	if err != nil {
+		return nil, err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+	for key, value := range t.Extra {
+		raw[key] = value
+	}
+	return json.Marshal(raw)
+}
+
+func (f *FunctionRequest) UnmarshalJSON(data []byte) error {
+	type alias FunctionRequest
+	var parsed alias
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	delete(raw, "description")
+	delete(raw, "name")
+	delete(raw, "parameters")
+	delete(raw, "arguments")
+	delete(raw, "strict")
+	*f = FunctionRequest(parsed)
+	if len(raw) > 0 {
+		f.Extra = raw
+	} else {
+		f.Extra = nil
+	}
+	return nil
+}
+
+func (f FunctionRequest) MarshalJSON() ([]byte, error) {
+	type alias FunctionRequest
+	data, err := json.Marshal(alias(f))
+	if err != nil {
+		return nil, err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+	for key, value := range f.Extra {
+		raw[key] = value
+	}
+	return json.Marshal(raw)
 }
 
 type StreamOptions struct {
@@ -289,12 +371,62 @@ type Message struct {
 	Content          any             `json:"content"`
 	Name             *string         `json:"name,omitempty"`
 	Prefix           *bool           `json:"prefix,omitempty"`
+	Audio            json.RawMessage `json:"audio,omitempty"`
 	ReasoningContent *string         `json:"reasoning_content,omitempty"`
 	Reasoning        *string         `json:"reasoning,omitempty"`
+	FunctionCall     json.RawMessage `json:"function_call,omitempty"`
+	Refusal          string          `json:"refusal,omitempty"`
 	ToolCalls        json.RawMessage `json:"tool_calls,omitempty"`
 	ToolCallId       string          `json:"tool_call_id,omitempty"`
+	Extra            map[string]json.RawMessage `json:"-"`
 	parsedContent    []MediaContent
 	//parsedStringContent *string
+}
+
+func (m *Message) UnmarshalJSON(data []byte) error {
+	type alias Message
+	var parsed alias
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	delete(raw, "role")
+	delete(raw, "content")
+	delete(raw, "name")
+	delete(raw, "prefix")
+	delete(raw, "audio")
+	delete(raw, "reasoning_content")
+	delete(raw, "reasoning")
+	delete(raw, "function_call")
+	delete(raw, "refusal")
+	delete(raw, "tool_calls")
+	delete(raw, "tool_call_id")
+	*m = Message(parsed)
+	if len(raw) > 0 {
+		m.Extra = raw
+	} else {
+		m.Extra = nil
+	}
+	return nil
+}
+
+func (m Message) MarshalJSON() ([]byte, error) {
+	type alias Message
+	data, err := json.Marshal(alias(m))
+	if err != nil {
+		return nil, err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+	for key, value := range m.Extra {
+		raw[key] = value
+	}
+	return json.Marshal(raw)
 }
 
 type MediaContent struct {
