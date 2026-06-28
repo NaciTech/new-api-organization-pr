@@ -334,6 +334,10 @@ type GeminiChatTool struct {
 	CodeExecution         any `json:"codeExecution,omitempty"`
 	FunctionDeclarations  any `json:"functionDeclarations,omitempty"`
 	URLContext            any `json:"urlContext,omitempty"`
+	ComputerUse           any `json:"computerUse,omitempty"`
+	FileSearch            any `json:"fileSearch,omitempty"`
+	GoogleMaps            any `json:"googleMaps,omitempty"`
+	MCPServers            any `json:"mcpServers,omitempty"`
 }
 
 type GeminiChatGenerationConfig struct {
