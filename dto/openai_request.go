@@ -78,6 +78,7 @@ type GeneralOpenAIRequest struct {
 	LogitBias            json.RawMessage `json:"logit_bias,omitempty"`
 	Metadata             json.RawMessage `json:"metadata,omitempty"`
 	Prediction           json.RawMessage `json:"prediction,omitempty"`
+	Moderation           json.RawMessage `json:"moderation,omitempty"`
 	// gemini
 	ExtraBody json.RawMessage `json:"extra_body,omitempty"`
 	//xai
@@ -336,7 +337,54 @@ type StreamOptions struct {
 	IncludeUsage bool `json:"include_usage,omitempty"`
 	// IncludeObfuscation is only for /v1/responses stream payload.
 	// This field is filtered by default and can be enabled via channel setting allow_include_obfuscation.
-	IncludeObfuscation bool `json:"include_obfuscation,omitempty"`
+	IncludeObfuscation bool                       `json:"include_obfuscation,omitempty"`
+	Extra              map[string]json.RawMessage `json:"-"`
+}
+
+func (s *StreamOptions) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := common.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	var parsed struct {
+		IncludeUsage       bool `json:"include_usage,omitempty"`
+		IncludeObfuscation bool `json:"include_obfuscation,omitempty"`
+	}
+	if err := common.Unmarshal(data, &parsed); err != nil {
+		return err
+	}
+	s.IncludeUsage = parsed.IncludeUsage
+	s.IncludeObfuscation = parsed.IncludeObfuscation
+	delete(raw, "include_usage")
+	delete(raw, "include_obfuscation")
+	if len(raw) > 0 {
+		s.Extra = raw
+	} else {
+		s.Extra = nil
+	}
+	return nil
+}
+
+func (s StreamOptions) MarshalJSON() ([]byte, error) {
+	raw := make(map[string]json.RawMessage, len(s.Extra)+2)
+	for key, value := range s.Extra {
+		raw[key] = value
+	}
+	if s.IncludeUsage {
+		data, err := common.Marshal(s.IncludeUsage)
+		if err != nil {
+			return nil, err
+		}
+		raw["include_usage"] = data
+	}
+	if s.IncludeObfuscation {
+		data, err := common.Marshal(s.IncludeObfuscation)
+		if err != nil {
+			return nil, err
+		}
+		raw["include_obfuscation"] = data
+	}
+	return common.Marshal(raw)
 }
 
 func (r *GeneralOpenAIRequest) GetMaxTokens() uint {
@@ -981,6 +1029,7 @@ type OpenAIResponsesRequest struct {
 	MaxOutputTokens    *uint           `json:"max_output_tokens,omitempty"`
 	TopLogProbs        *int            `json:"top_logprobs,omitempty"`
 	Metadata           json.RawMessage `json:"metadata,omitempty"`
+	Moderation         json.RawMessage `json:"moderation,omitempty"`
 	ParallelToolCalls  json.RawMessage `json:"parallel_tool_calls,omitempty"`
 	PreviousResponseID string          `json:"previous_response_id,omitempty"`
 	Reasoning          *Reasoning      `json:"reasoning,omitempty"`

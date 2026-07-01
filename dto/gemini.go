@@ -20,6 +20,8 @@ type GeminiChatRequest struct {
 	ToolConfig         *ToolConfig                `json:"toolConfig,omitempty"`
 	SystemInstructions *GeminiChatContent         `json:"systemInstruction,omitempty"`
 	CachedContent      string                     `json:"cachedContent,omitempty"`
+	Store              json.RawMessage            `json:"store,omitempty"`
+	Labels             json.RawMessage            `json:"labels,omitempty"`
 }
 
 // UnmarshalJSON allows GeminiChatRequest to accept both snake_case and camelCase fields.
@@ -273,6 +275,26 @@ type GeminiFileData struct {
 	FileUri  string `json:"fileUri,omitempty"`
 }
 
+func (g *GeminiFileData) UnmarshalJSON(data []byte) error {
+	type Alias GeminiFileData
+	var aux struct {
+		Alias
+		MimeTypeSnake string `json:"mime_type,omitempty"`
+		FileUriSnake  string `json:"file_uri,omitempty"`
+	}
+	if err := common.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	*g = GeminiFileData(aux.Alias)
+	if aux.MimeTypeSnake != "" {
+		g.MimeType = aux.MimeTypeSnake
+	}
+	if aux.FileUriSnake != "" {
+		g.FileUri = aux.FileUriSnake
+	}
+	return nil
+}
+
 type GeminiPart struct {
 	Text             string                  `json:"text,omitempty"`
 	Thought          bool                    `json:"thought,omitempty"`
@@ -298,6 +320,7 @@ func (p *GeminiPart) UnmarshalJSON(data []byte) error {
 	var aux struct {
 		Alias
 		InlineDataSnake *GeminiInlineData `json:"inline_data,omitempty"` // snake_case variant
+		FileDataSnake   *GeminiFileData   `json:"file_data,omitempty"`
 	}
 
 	if err := common.Unmarshal(data, &aux); err != nil {
@@ -312,6 +335,9 @@ func (p *GeminiPart) UnmarshalJSON(data []byte) error {
 		p.InlineData = aux.InlineDataSnake
 	} else if aux.InlineData != nil { // Fallback to camelCase from Alias
 		p.InlineData = aux.InlineData
+	}
+	if aux.FileDataSnake != nil {
+		p.FileData = aux.FileDataSnake
 	}
 	// Other fields like Text, FunctionCall etc. are already populated via aux.Alias
 
@@ -531,6 +557,75 @@ type GeminiUsageMetadata struct {
 	PromptTokensDetails        []GeminiPromptTokensDetails `json:"promptTokensDetails"`
 	ToolUsePromptTokensDetails []GeminiPromptTokensDetails `json:"toolUsePromptTokensDetails"`
 	CandidatesTokensDetails    []GeminiPromptTokensDetails `json:"candidatesTokensDetails"`
+	CacheTokensDetails         []GeminiPromptTokensDetails `json:"cacheTokensDetails"`
+}
+
+func (u *GeminiUsageMetadata) UnmarshalJSON(data []byte) error {
+	type Alias GeminiUsageMetadata
+	var aux struct {
+		*Alias
+		PromptTokenCountSnake           int                         `json:"prompt_token_count,omitempty"`
+		ToolUsePromptTokenCountSnake    int                         `json:"tool_use_prompt_token_count,omitempty"`
+		CandidatesTokenCountSnake       int                         `json:"candidates_token_count,omitempty"`
+		TotalTokenCountSnake            int                         `json:"total_token_count,omitempty"`
+		ThoughtTokenCountSnake          int                         `json:"thought_token_count,omitempty"`
+		ThoughtsTokenCountSnake         int                         `json:"thoughts_token_count,omitempty"`
+		CachedContentTokenCountSnake    int                         `json:"cached_content_token_count,omitempty"`
+		PromptTokensDetailsSnake        []GeminiPromptTokensDetails `json:"prompt_tokens_details,omitempty"`
+		PromptTokenDetailsCamel         []GeminiPromptTokensDetails `json:"promptTokenDetails,omitempty"`
+		ToolUsePromptTokensDetailsSnake []GeminiPromptTokensDetails `json:"tool_use_prompt_tokens_details,omitempty"`
+		CandidatesTokensDetailsSnake    []GeminiPromptTokensDetails `json:"candidates_tokens_details,omitempty"`
+		CandidatesTokenDetailsCamel     []GeminiPromptTokensDetails `json:"candidatesTokenDetails,omitempty"`
+		CacheTokensDetailsSnake         []GeminiPromptTokensDetails `json:"cache_tokens_details,omitempty"`
+		CacheTokenDetailsCamel          []GeminiPromptTokensDetails `json:"cacheTokenDetails,omitempty"`
+	}
+	aux.Alias = (*Alias)(u)
+	if err := common.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.PromptTokenCountSnake != 0 {
+		u.PromptTokenCount = aux.PromptTokenCountSnake
+	}
+	if aux.ToolUsePromptTokenCountSnake != 0 {
+		u.ToolUsePromptTokenCount = aux.ToolUsePromptTokenCountSnake
+	}
+	if aux.CandidatesTokenCountSnake != 0 {
+		u.CandidatesTokenCount = aux.CandidatesTokenCountSnake
+	}
+	if aux.TotalTokenCountSnake != 0 {
+		u.TotalTokenCount = aux.TotalTokenCountSnake
+	}
+	if aux.ThoughtTokenCountSnake != 0 {
+		u.ThoughtsTokenCount = aux.ThoughtTokenCountSnake
+	}
+	if aux.ThoughtsTokenCountSnake != 0 {
+		u.ThoughtsTokenCount = aux.ThoughtsTokenCountSnake
+	}
+	if aux.CachedContentTokenCountSnake != 0 {
+		u.CachedContentTokenCount = aux.CachedContentTokenCountSnake
+	}
+	if len(aux.PromptTokensDetailsSnake) > 0 {
+		u.PromptTokensDetails = aux.PromptTokensDetailsSnake
+	}
+	if len(aux.PromptTokenDetailsCamel) > 0 {
+		u.PromptTokensDetails = aux.PromptTokenDetailsCamel
+	}
+	if len(aux.ToolUsePromptTokensDetailsSnake) > 0 {
+		u.ToolUsePromptTokensDetails = aux.ToolUsePromptTokensDetailsSnake
+	}
+	if len(aux.CandidatesTokensDetailsSnake) > 0 {
+		u.CandidatesTokensDetails = aux.CandidatesTokensDetailsSnake
+	}
+	if len(aux.CandidatesTokenDetailsCamel) > 0 {
+		u.CandidatesTokensDetails = aux.CandidatesTokenDetailsCamel
+	}
+	if len(aux.CacheTokensDetailsSnake) > 0 {
+		u.CacheTokensDetails = aux.CacheTokensDetailsSnake
+	}
+	if len(aux.CacheTokenDetailsCamel) > 0 {
+		u.CacheTokensDetails = aux.CacheTokenDetailsCamel
+	}
+	return nil
 }
 
 type GeminiPromptTokensDetails struct {
@@ -544,6 +639,26 @@ type GeminiImageRequest struct {
 	Parameters GeminiImageParameters `json:"parameters"`
 }
 
+func (r *GeminiImageRequest) GetTokenCountMeta() *types.TokenCountMeta {
+	inputTexts := make([]string, 0, len(r.Instances))
+	for _, instance := range r.Instances {
+		if strings.TrimSpace(instance.Prompt) != "" {
+			inputTexts = append(inputTexts, strings.TrimSpace(instance.Prompt))
+		}
+	}
+	return &types.TokenCountMeta{
+		CombineText: strings.Join(inputTexts, "\n"),
+	}
+}
+
+func (r *GeminiImageRequest) IsStream(c *gin.Context) bool {
+	return false
+}
+
+func (r *GeminiImageRequest) SetModelName(modelName string) {
+	// Gemini image request carries model in URL path, not in body.
+}
+
 type GeminiImageInstance struct {
 	Prompt string `json:"prompt"`
 }
@@ -553,6 +668,7 @@ type GeminiImageParameters struct {
 	AspectRatio      string `json:"aspectRatio,omitempty"`
 	PersonGeneration string `json:"personGeneration,omitempty"`
 	ImageSize        string `json:"imageSize,omitempty"`
+	OutputMimeType   string `json:"outputMimeType,omitempty"`
 }
 
 type GeminiImageResponse struct {
@@ -573,6 +689,7 @@ type GeminiEmbeddingRequest struct {
 	TaskType             string            `json:"taskType,omitempty"`
 	Title                string            `json:"title,omitempty"`
 	OutputDimensionality int               `json:"outputDimensionality,omitempty"`
+	EmbedContentConfig   json.RawMessage   `json:"embedContentConfig,omitempty"`
 }
 
 func (r *GeminiEmbeddingRequest) IsStream(c *gin.Context) bool {
@@ -631,11 +748,13 @@ func (r *GeminiBatchEmbeddingRequest) SetModelName(modelName string) {
 }
 
 type GeminiEmbeddingResponse struct {
-	Embedding ContentEmbedding `json:"embedding"`
+	Embedding     ContentEmbedding    `json:"embedding"`
+	UsageMetadata GeminiUsageMetadata `json:"usageMetadata,omitempty"`
 }
 
 type GeminiBatchEmbeddingResponse struct {
-	Embeddings []*ContentEmbedding `json:"embeddings"`
+	Embeddings    []*ContentEmbedding `json:"embeddings"`
+	UsageMetadata GeminiUsageMetadata `json:"usageMetadata,omitempty"`
 }
 
 type ContentEmbedding struct {
