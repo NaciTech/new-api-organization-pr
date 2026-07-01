@@ -12,7 +12,6 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/types"
-	"github.com/samber/lo"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,7 +30,7 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, info *relaycommon.RelayIn
 		return nil, err
 	}
 	openaiRequest.(*dto.GeneralOpenAIRequest).StreamOptions = &dto.StreamOptions{
-		IncludeUsage: lo.ToPtr(true),
+		IncludeUsage: true,
 	}
 	// map to ollama chat request (Claude -> OpenAI -> Ollama chat)
 	return openAIChatToOllamaChat(c, openaiRequest.(*dto.GeneralOpenAIRequest))
