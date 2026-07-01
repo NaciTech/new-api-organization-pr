@@ -334,10 +334,10 @@ func (f FunctionRequest) MarshalJSON() ([]byte, error) {
 }
 
 type StreamOptions struct {
-	IncludeUsage bool `json:"include_usage,omitempty"`
+	IncludeUsage *bool `json:"include_usage,omitempty"`
 	// IncludeObfuscation is only for /v1/responses stream payload.
 	// This field is filtered by default and can be enabled via channel setting allow_include_obfuscation.
-	IncludeObfuscation bool                       `json:"include_obfuscation,omitempty"`
+	IncludeObfuscation *bool                      `json:"include_obfuscation,omitempty"`
 	Extra              map[string]json.RawMessage `json:"-"`
 }
 
@@ -347,8 +347,8 @@ func (s *StreamOptions) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	var parsed struct {
-		IncludeUsage       bool `json:"include_usage,omitempty"`
-		IncludeObfuscation bool `json:"include_obfuscation,omitempty"`
+		IncludeUsage       *bool `json:"include_usage,omitempty"`
+		IncludeObfuscation *bool `json:"include_obfuscation,omitempty"`
 	}
 	if err := common.Unmarshal(data, &parsed); err != nil {
 		return err
@@ -370,14 +370,14 @@ func (s StreamOptions) MarshalJSON() ([]byte, error) {
 	for key, value := range s.Extra {
 		raw[key] = value
 	}
-	if s.IncludeUsage {
+	if s.IncludeUsage != nil {
 		data, err := common.Marshal(s.IncludeUsage)
 		if err != nil {
 			return nil, err
 		}
 		raw["include_usage"] = data
 	}
-	if s.IncludeObfuscation {
+	if s.IncludeObfuscation != nil {
 		data, err := common.Marshal(s.IncludeObfuscation)
 		if err != nil {
 			return nil, err

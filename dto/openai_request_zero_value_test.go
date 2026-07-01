@@ -12,6 +12,10 @@ func TestGeneralOpenAIRequestPreserveExplicitZeroValues(t *testing.T) {
 	raw := []byte(`{
 		"model":"gpt-4.1",
 		"stream":false,
+		"stream_options":{
+			"include_usage":false,
+			"include_obfuscation":false
+		},
 		"max_tokens":0,
 		"max_completion_tokens":0,
 		"top_p":0,
@@ -35,6 +39,8 @@ func TestGeneralOpenAIRequestPreserveExplicitZeroValues(t *testing.T) {
 	require.NoError(t, err)
 
 	require.True(t, gjson.GetBytes(encoded, "stream").Exists())
+	require.True(t, gjson.GetBytes(encoded, "stream_options.include_usage").Exists())
+	require.True(t, gjson.GetBytes(encoded, "stream_options.include_obfuscation").Exists())
 	require.True(t, gjson.GetBytes(encoded, "max_tokens").Exists())
 	require.True(t, gjson.GetBytes(encoded, "max_completion_tokens").Exists())
 	require.True(t, gjson.GetBytes(encoded, "top_p").Exists())

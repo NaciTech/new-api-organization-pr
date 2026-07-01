@@ -46,8 +46,8 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 
 	includeUsage := true
 	// 判断用户是否需要返回使用情况
-	if request.StreamOptions != nil {
-		includeUsage = request.StreamOptions.IncludeUsage
+	if request.StreamOptions != nil && request.StreamOptions.IncludeUsage != nil {
+		includeUsage = lo.FromPtr(request.StreamOptions.IncludeUsage)
 	}
 
 	// 如果不支持StreamOptions，将StreamOptions设置为nil
@@ -56,9 +56,10 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 	} else {
 		// 如果支持StreamOptions，且请求中没有设置StreamOptions，根据配置文件设置StreamOptions
 		if constant.ForceStreamOption {
-			request.StreamOptions = &dto.StreamOptions{
-				IncludeUsage: true,
+			if request.StreamOptions == nil {
+				request.StreamOptions = &dto.StreamOptions{}
 			}
+			request.StreamOptions.IncludeUsage = lo.ToPtr(true)
 		}
 	}
 
